@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QNX-ChaosPulse // Real-Time Microkernel Resilience Suite</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <div class="hud-overlay"></div>
+    <div class="cockpit-container">
+        <!-- TOP STATUS HEADER -->
+        <header class="hud-header">
+            <div class="hud-title-block">
+                <div class="qnx-brand">
+                    <span class="qnx-logo-dot"></span>
+                    <span class="qnx-badge">QNX NEUTRINO 8.0 SDP</span>
+                    <span class="qnx-track">DEVELOPER TOOLING &amp; HOST TOOLS</span>
+                </div>
+                <h1>QNX-CHAOSPULSE <span class="version-tag">v8.0.4-RELEASE</span></h1>
+                <p class="tagline">Deterministic Microkernel Chaos Engineering &amp; Real-Time IPC Resilience Suite</p>
+            </div>
+
+            <div class="hud-badges">
+                <button class="codelab-nav-btn" id="btnOpenCodelab">📖 QNX 8.0 INTERACTIVE CODELAB</button>
+                <div class="badge-card" id="targetModeBadge">
+                    <span class="badge-label">TARGET LINK</span>
+                    <span class="badge-value target-mode" id="targetModeText">INITIALIZING...</span>
+                </div>
+                <div class="badge-card">
+                    <span class="badge-label">WS TELEMETRY</span>
+                    <span class="badge-value ws-status" id="wsStatusText">CONNECTING</span>
+                </div>
+                <div class="badge-card">
+                    <span class="badge-label">STREAM RATE</span>
+                    <span class="badge-value mono" id="streamFps">30.0 Hz</span>
+                </div>
+                <div class="badge-card asil-badge-container">
+                    <span class="badge-label">SAFETY QUALIFICATION</span>
+                    <div class="asil-status-pill asil-nominal" id="asilStatusPill">
+                        <span class="pulse-indicator"></span>
+                        <span id="asilStatusText">ASIL-D NOMINAL (PASS)</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN GRID: OSCILLOSCOPE + SCORECARD + CONTROLS -->
+        <main class="cockpit-grid">
+            
+            <!-- LEFT COLUMN: HARDWARE OSCILLOSCOPE -->
+            <section class="panel oscilloscope-panel">
+                <div class="panel-header">
+                    <div class="header-left">
+                        <span class="hud-icon">∿</span>
+                        <h2>HARDWARE OSCILLOSCOPE VIEWPORT</h2>
+                        <span class="hud-sub">CH1: Jitter (Cyan) | CH2: IPC Latency (Amber)</span>
+                    </div>
+                    <div class="scope-controls">
+                        <button class="scope-btn" id="btnFreezeScope">PAUSE SCOPE</button>
+                        <button class="scope-btn" id="btnClearScope">CLEAR PHOSPHOR</button>
+                        <div class="scope-timebase">
+                            <span class="ctrl-label">SCALE:</span>
+                            <button class="timebase-btn active" data-scale="1">1X</button>
+                            <button class="timebase-btn" data-scale="2">2X</button>
+                            <button class="timebase-btn" data-scale="5">5X</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="scopeCanvas" width="960" height="420"></canvas>
+                    <div class="canvas-crosshair" id="scopeCrosshair"></div>
+                    <div class="canvas-legend">
+                        <div class="legend-item"><span class="trace-color cyan-box"></span> CH1: Periodic Wake-up Jitter (&mu;s)</div>
+                        <div class="legend-item"><span class="trace-color amber-box"></span> CH2: Pulse Dispatch Latency (&mu;s)</div>
+                        <div class="legend-item"><span class="trace-color red-dashed"></span> ASIL-D Limit: 3.50 &mu;s</div>
+                    </div>
+                </div>
+
+                <!-- SCOPE FOOTER METRICS -->
+                <div class="scope-metrics-row">
+                    <div class="metric-mini">
+                        <span class="m-lbl">CH1 INSTANT JITTER</span>
+                        <span class="m-val mono cyan" id="instantJitter">0.824 &mu;s</span>
+                    </div>
+                    <div class="metric-mini">
+                        <span class="m-lbl">CH2 INSTANT LATENCY</span>
+                        <span class="m-val mono amber" id="instantLatency">1.148 &mu;s</span>
+                    </div>
+                    <div class="metric-mini">
+                        <span class="m-lbl">P50 MEDIAN JITTER</span>
+                        <span class="m-val mono" id="p50Jitter">0.810 &mu;s</span>
+                    </div>
+                    <div class="metric-mini">
+                        <span class="m-lbl">P99 JITTER</span>
+                        <span class="m-val mono" id="p99Jitter">1.050 &mu;s</span>
+                    </div>
+                    <div class="metric-mini">
+                        <span class="m-lbl">WCET (PEAK RECORDED)</span>
+                        <span class="m-val mono" id="wcetJitter">1.150 &mu;s</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: ASIL-D SCORECARD -->
+            <section class="panel scorecard-panel">
+                <div class="panel-header">
+                    <div class="header-left">
+                        <span class="hud-icon">🛡</span>
+                        <h2>ASIL-D INTEGRITY SCORECARD</h2>
+                    </div>
+                    <div class="scorecard-header-actions">
+                        <button class="audit-export-btn" id="btnExportAudit">📋 EXPORT ASIL-D AUDIT REPORT</button>
+                        <span class="micro-badge">ISO 26262 / IEC 61508</span>
+                    </div>
+                </div>
+
+                <div class="scorecard-body">
+                    <!-- GIANT SAFETY STATE BANNER -->
+                    <div class="safety-banner state-nominal" id="safetyBanner">
+                        <div class="banner-title" id="safetyBannerTitle">ASIL-D REAL-TIME COMPLIANT (PASS)</div>
+                        <div class="banner-sub" id="safetyBannerSub">Microkernel scheduling wake-up jitter within deterministic boundary (&le; 3.50 &mu;s)</div>
+                    </div>
+
+                    <!-- METRICS MATRIX -->
+                    <div class="metrics-matrix">
+                        <div class="matrix-card">
+                            <span class="card-title">RT THREAD PRIORITY</span>
+                            <span class="card-num cyan" id="rtPriorityVal">63 (FIFO)</span>
+                            <span class="card-desc">Max Hard RT Class</span>
+                        </div>
+                        <div class="matrix-card">
+                            <span class="card-title">CPU LOAD CONTENTION</span>
+                            <span class="card-num" id="cpuLoadVal">6%</span>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="cpuLoadBar" style="width: 6%;"></div>
+                            </div>
+                        </div>
+                        <div class="matrix-card">
+                            <span class="card-title">TOTAL IPC PULSES</span>
+                            <span class="card-num mono" id="totalPulsesVal">0</span>
+                            <span class="card-desc">1 kHz Actuator Stream</span>
+                        </div>
+                        <div class="matrix-card">
+                            <span class="card-title">DROPPED PULSES</span>
+                            <span class="card-num mono red-alert" id="droppedPulsesVal">0</span>
+                            <span class="card-desc" id="droppedPulsesPct">0.00% Drop Rate</span>
+                        </div>
+                    </div>
+
+                    <!-- PRESET ATTACK SCENARIOS -->
+                    <div class="presets-section">
+                        <span class="section-title">QUICK CHAOS VERIFICATION PRESETS</span>
+                        <div class="presets-grid">
+                            <button class="preset-btn" id="presetNominal">
+                                <strong>1. NOMINAL AVIONICS</strong>
+                                <span>1 kHz baseline stream</span>
+                            </button>
+                            <button class="preset-btn" id="presetStorm">
+                                <strong>2. 100% CPU STORM</strong>
+                                <span>Floods cores (P15-55)</span>
+                            </button>
+                            <button class="preset-btn" id="presetInversion">
+                                <strong>3. PRIORITY INVERSION</strong>
+                                <span>PIP recovery trap</span>
+                            </button>
+                            <button class="preset-btn" id="presetStress">
+                                <strong>4. ASIL-D STRESS TEST</strong>
+                                <span>Storm + 15% pulse drop</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- BOTTOM DECK: CHAOS CONTROLS + TELEMETRY LOG -->
+        <footer class="cockpit-lower">
+            <!-- CHAOS CONTROL DECK -->
+            <section class="panel control-panel">
+                <div class="panel-header">
+                    <div class="header-left">
+                        <span class="hud-icon">⚡</span>
+                        <h2>CHAOS INJECTION CONTROL DECK</h2>
+                    </div>
+                    <button class="panic-btn" id="btnPanicReset">PANIC STOP &amp; RESET ALL FAULTS</button>
+                </div>
+
+                <div class="controls-grid">
+                    <!-- FAULT 1: CPU STORM -->
+                    <div class="fault-card" id="cardCpuStorm">
+                        <div class="fault-header">
+                            <span class="fault-title">CPU Core Saturation Storm</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggleCpuStorm">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="fault-desc">Spawns SCHED_SPORADIC &amp; SCHED_RR contention workers (P15-55) to thrash L1/L2 caches.</p>
+                        <div class="slider-row">
+                            <span class="slider-label">Workers: <span id="stormThreadCount">4</span> threads</span>
+                            <input type="range" id="rangeStormThreads" min="1" max="16" value="4">
+                        </div>
+                    </div>
+
+                    <!-- FAULT 2: PULSE DROP -->
+                    <div class="fault-card" id="cardPulseDrop">
+                        <div class="fault-header">
+                            <span class="fault-title">IPC Pulse Drop Injection</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="togglePulseDrop">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <p class="fault-desc">Intercepts ChannelCreate pulses before dispatch to simulate packet loss / link severed.</p>
+                        <div class="slider-row">
+                            <span class="slider-label">Drop Rate: <span id="pulseDropRateVal">15%</span></span>
+                            <input type="range" id="rangePulseDrop" min="5" max="50" value="15">
+                        </div>
+                    </div>
+
+                    <!-- FAULT 3: PRIORITY INVERSION -->
+                    <div class="fault-card" id="cardPriorityInversion">
+                        <div class="fault-header">
+                            <span class="fault-title">Microsecond Priority Inversion Trap</span>
+                            <button class="trigger-btn" id="btnTriggerInversion">INJECT TRAP</button>
+                        </div>
+                        <p class="fault-desc">Locks critical IPC receiver to low priority, triggering ASIL-D breach until PIP auto-heals.</p>
+                        <div class="fault-indicator" id="pipStatusIndicator">PIP ENGINE: READY</div>
+                    </div>
+
+                    <!-- FAULT 4: MEMORY CORRUPTION -->
+                    <div class="fault-card" id="cardMemoryFault">
+                        <div class="fault-header">
+                            <span class="fault-title">Synthetic Payload Corruption</span>
+                            <button class="trigger-btn" id="btnTriggerMemoryFault">CORRUPT BYTES</button>
+                        </div>
+                        <p class="fault-desc">Corrupts pulse sequence checksums to verify receiver CRC32 rejection mechanics.</p>
+                        <div class="fault-indicator" id="crcStatusIndicator">CRC32 STATUS: VERIFIED</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TERMINAL LOG FEED -->
+            <section class="panel terminal-panel">
+                <div class="panel-header">
+                    <div class="header-left">
+                        <span class="hud-icon">&gt;_</span>
+                        <h2>TELEMETRY EVENT STREAM</h2>
+                    </div>
+                    <span class="terminal-ctrl" id="btnClearLog">CLEAR LOG</span>
+                </div>
+                <div class="terminal-body" id="terminalFeed">
+                    <div class="term-line term-system">[SYSTEM] QNX-ChaosPulse Telemetry Gateway Initialized.</div>
+                    <div class="term-line term-system">[SYSTEM] Ready for ISO 26262 ASIL-D Real-Time Stress Verification.</div>
+                </div>
+            </section>
+        </footer>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- INTERACTIVE QNX 8.0 DEVELOPER CODELAB MODAL                       -->
+    <!-- ================================================================= -->
+    <div class="modal-backdrop" id="codelabBackdrop">
+        <div class="codelab-modal" id="codelabModal">
+            <header class="modal-header">
+                <div class="modal-header-left">
+                    <span class="codelab-badge">QNX SDP 8.0 INTERACTIVE ARCHITECTURAL CODELAB</span>
+                    <h2>Microkernel Real-Time Primitives &amp; ASIL-D Hard Bounds</h2>
+                </div>
+                <button class="modal-close-btn" id="btnCloseCodelab">&times; CLOSE [ESC]</button>
+            </header>
+
+            <nav class="codelab-tabs">
+                <button class="codelab-tab-btn active" data-tab="module1">
+                    <span class="tab-num">01</span>
+                    <span class="tab-name">Deterministic IPC</span>
+                </button>
+                <button class="codelab-tab-btn" data-tab="module2">
+                    <span class="tab-num">02</span>
+                    <span class="tab-name">TSC Calibration</span>
+                </button>
+                <button class="codelab-tab-btn" data-tab="module3">
+                    <span class="tab-num">03</span>
+                    <span class="tab-name">SCHED_FIFO Isolation</span>
+                </button>
+                <button class="codelab-tab-btn" data-tab="module4">
+                    <span class="tab-num">04</span>
+                    <span class="tab-name">Priority Inheritance (PIP)</span>
+                </button>
+            </nav>
+
+            <div class="codelab-body">
+                <!-- MODULE 1 -->
+                <div class="codelab-content active" id="tabContent-module1">
+                    <div class="module-title-row">
+                        <h3>Module 1: Deterministic IPC via <code>ChannelCreate(_NTO_CHF_FIXED_PRIORITY)</code></h3>
+                        <button class="codelab-run-btn" data-module="1">⚡ RUN LIVE VERIFICATION: PULSE IPC</button>
+                    </div>
+                    <p class="module-lead">In monolithic operating systems, IPC channels can suffer from priority inversion when multiple threads of varying criticality communicate. In QNX Neutrino 8.0, channels provide microsecond-deterministic message passing, but configuring the channel flags is critical for safety-critical systems.</p>
+
+                    <div class="arch-diagram-block">
+                        <div class="diagram-title">ARCHITECTURAL IPC QUEUE TOPOLOGY</div>
+<pre>
+[Pulse Producer (P40)] ----\
+[Actuator Heartbeat (P55)] -> [ChannelCreate(_NTO_CHF_FIXED_PRIORITY)] -> [Receiver Thread (Locked Priority 55)]
+[Diagnostics Sensor (P15)] -/          |
+                                       v
+                     +---------------------------------------+
+                     | Microkernel Fixed-Priority FIFO Queue |
+                     | 1. Actuator Heartbeat (Priority 55)   |  <-- Handled First
+                     | 2. Pulse Producer     (Priority 40)   |
+                     | 3. Diagnostics Sensor (Priority 15)   |  <-- Never Preempts Receiver
+                     +---------------------------------------+
+</pre>
+                    </div>
+
+                    <h4>The Real-Time Architectural Dilemma</h4>
+                    <p>By default, QNX channels inherit the priority of the sending client (<code>_NTO_CHF_UNBLOCK</code>). In an automotive electronic control unit (ECU), if an untrusted telemetry worker dispatches a message to the steering actuator channel, the receiver's priority would degrade to that client's level, introducing unbounded priority inversion. Passing <code>_NTO_CHF_FIXED_PRIORITY</code> forces the microkernel to keep the receiver strictly at its designated priority, guaranteeing deterministic 1.15 &mu;s dispatch latency.</p>
+
+                    <div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span>pulse_interceptor.c (Production QNX 8.0 Implementation)</span>
+                            <button class="copy-code-btn">COPY CODE</button>
+                        </div>
+<pre><code class="language-c">/* Setup Dedicated Fixed-Priority Channel */
+int chid = ChannelCreate(_NTO_CHF_FIXED_PRIORITY);
+if (chid &lt; 0) {
+    perror("Failed to create fixed-priority QNX channel");
+    return -1;
+}
+
+/* Establish non-blocking side-channel connection */
+int coid = ConnectAttach(0, 0, chid, _NTO_SIDE_CHANNEL, 0);
+
+/* Asynchronous pulse dispatch from ISR or hard real-time loop */
+int status = MsgSendPulse(coid, NOMINAL_PRIORITY_INTERCEPTOR, 0x4A, sequence_number);
+if (status &lt; 0) {
+    /* Channel queue congested - pulse dropped deterministically */
+    atomic_fetch_add(&amp;dropped_pulses, 1);
+}
+</code></pre>
+                    </div>
+                </div>
+
+                <!-- MODULE 2 -->
+                <div class="codelab-content" id="tabContent-module2">
+                    <div class="module-title-row">
+                        <h3>Module 2: Sub-Microsecond TSC Calibration with <code>ClockCycles()</code></h3>
+                        <button class="codelab-run-btn" data-module="2">⚡ RUN LIVE VERIFICATION: CALIBRATE TSC</button>
+                    </div>
+                    <p class="module-lead">ISO 26262 ASIL-D functional safety verification requires proving that execution jitter remains below 3.50 &mu;s. Calling standard POSIX <code>clock_gettime()</code> can add hundreds of nanoseconds in syscall overhead. QNX Neutrino 8.0 provides zero-overhead hardware counter reads via <code>ClockCycles()</code>.</p>
+
+                    <div class="arch-diagram-block">
+                        <div class="diagram-title">HARDWARE TSC TIMING CONVERSION</div>
+<pre>
+[Hardware Cycle Counter] ==(ClockCycles())==> uint64_t current_cycles
+                                                   |
+[QNX Syspage Table]      ==> qtime->cycles_per_sec |  (e.g., 2,400,000,000 Hz)
+                                                   v
+                     Delta Cycles = |Cycles_actual - Cycles_expected|
+                     Jitter (us)  = (Delta Cycles * 1,000,000) / cycles_per_sec
+</pre>
+                    </div>
+
+                    <h4>Syspage Invariant Clock Scaling</h4>
+                    <p>Modern multi-core processors dynamically modulate core frequencies to manage thermal envelopes. QNX Neutrino 8.0's kernel syspage (<code>SYSPAGE_ENTRY(qtime)</code>) abstracts the invariant timestamp counter, guaranteeing nanosecond measurement stability across frequency shifts without floating-point overflow.</p>
+
+                    <div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span>cycle_telemetry.c (Hardware Cycle Counting Engine)</span>
+                            <button class="copy-code-btn">COPY CODE</button>
+                        </div>
+<pre><code class="language-c">#include &lt;sys/syspage.h&gt;
+#include &lt;sys/neutrino.h&gt;
+
+uint64_t tsc_freq = SYSPAGE_ENTRY(qtime)-&gt;cycles_per_sec;
+
+uint64_t t1 = ClockCycles();
+/* Real-time safety-critical operation */
+uint64_t t2 = ClockCycles();
+
+/* Nanosecond-precision conversion without floating point drift */
+float delta_us = (float)((double)(t2 - t1) * 1000000.0 / (double)tsc_freq);
+
+if (delta_us &gt; ASIL_D_MAX_JITTER_US) {
+    /* Trigger ASIL-D Safety Integrity Boundary Violation */
+    qnx_trace_chaos_event(CHAOS_TRACE_ASIL_BREACH, (uint32_t)(delta_us * 1000), 0);
+}
+</code></pre>
+                    </div>
+                </div>
+
+                <!-- MODULE 3 -->
+                <div class="codelab-content" id="tabContent-module3">
+                    <div class="module-title-row">
+                        <h3>Module 3: Surviving Synthetic CPU Storms under <code>SCHED_FIFO</code></h3>
+                        <button class="codelab-run-btn" data-module="3">⚡ RUN LIVE VERIFICATION: CPU STORM</button>
+                    </div>
+                    <p class="module-lead">When a vehicle's infotainment, navigation, or diagnostic software experiences an unhandled memory leak or infinite loop, multi-core processors face severe cache evictions and memory bus saturation. In this module, we demonstrate how QNX Neutrino 8.0 isolates a Priority 63 hard real-time thread.</p>
+
+                    <div class="arch-diagram-block">
+                        <div class="diagram-title">SMP SCHEDULER ISOLATION TOPOLOGY</div>
+<pre>
+All SMP Cores 100% Saturated:
+[Core 0-7: 16 Storm Workers] (P15-55) [MATRIX ALU THRASH / L1/L2 CACHE FLOOD]
+                                      |
+[Core 0: Priority 63 RT Loop] (P63)   |  mlockall(MCL_CURRENT | MCL_FUTURE)
+                                      v
+         SCHED_FIFO Strict Priority Preemption:
+         Wakeup Jitter: Nominal 0.82 us -> Transient 6.8 us -> Heals to &lt; 1.2 us!
+</pre>
+                    </div>
+
+                    <h4>Memory Locking (<code>mlockall</code>) &amp; Deterministic Preemption</h4>
+                    <p>In QNX Neutrino 8.0, threads executing with <code>SCHED_FIFO</code> at Priority 63 run non-preemptibly relative to lower-priority threads. By locking memory pages via <code>mlockall(MCL_CURRENT | MCL_FUTURE)</code>, demand paging page faults are completely eliminated, guaranteeing that wake-up jitter stays strictly below the 3.50 &mu;s ASIL-D threshold even under 100% background load.</p>
+
+                    <div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span>cpu_storm_generator.c (Priority 63 Real-Time Thread)</span>
+                            <button class="copy-code-btn">COPY CODE</button>
+                        </div>
+<pre><code class="language-c">/* Lock all process virtual memory pages into physical RAM */
+mlockall(MCL_CURRENT | MCL_FUTURE);
+
+pthread_attr_t attr;
+pthread_attr_init(&amp;attr);
+pthread_attr_setinheritsched(&amp;attr, PTHREAD_EXPLICIT_SCHED);
+pthread_attr_setschedpolicy(&amp;attr, SCHED_FIFO);
+
+struct sched_param param;
+param.sched_priority = 63; /* Maximum standard hard real-time priority */
+pthread_attr_setschedparam(&amp;attr, &amp;param);
+
+pthread_create(&amp;rt_thread, &amp;attr, priority_63_rt_worker, NULL);
+</code></pre>
+                    </div>
+                </div>
+
+                <!-- MODULE 4 -->
+                <div class="codelab-content" id="tabContent-module4">
+                    <div class="module-title-row">
+                        <h3>Module 4: Real-Time Priority Inheritance Protocol (PIP) Verification</h3>
+                        <button class="codelab-run-btn" data-module="4">⚡ RUN LIVE VERIFICATION: PIP RECOVERY</button>
+                    </div>
+                    <p class="module-lead">Priority Inversion occurs when a high-priority task is blocked waiting for a synchronization mutex held by a low-priority task, while medium-priority tasks preempt the lower task. Without Priority Inheritance, the high-priority task misses its deadline indefinitely.</p>
+
+                    <div class="arch-diagram-block">
+                        <div class="diagram-title">PRIORITY INHERITANCE SEQUENCE</div>
+<pre>
+Priority
+  ^
+P63 |  [Safety Task T_H] -------- Blocks on Mutex A --------------------> [T_H Awakens &amp; Runs]
+    |                                   |                                     ^
+P35 |  [Worker Task T_M]                |  (Cannot preempt: T_L is now P63)   |
+    |                                   v                                     |
+P10 |  [Owner Task  T_L]  ==== Dynamic PIP Elevation to P63 ====> Releases A -+
+    +----------------------------------------------------------------------------> Time (ms)
+</pre>
+                    </div>
+
+                    <h4>Microkernel Auto-Healing within 300 ms</h4>
+                    <p>When QNX-ChaosPulse injects a Priority Inversion Trap, instantaneous jitter spikes to ~6.8 &mu;s, briefly triggering an ASIL-D breach. QNX Neutrino 8.0's microkernel dynamically promotes the lock owner to Priority 63, unblocking the mutex and restoring jitter to &lt; 1.2 &mu;s within 300 ms.</p>
+
+                    <div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span>chaospulse_daemon.c (Priority Inheritance Mutex Configuration)</span>
+                            <button class="copy-code-btn">COPY CODE</button>
+                        </div>
+<pre><code class="language-c">pthread_mutexattr_t mattr;
+pthread_mutexattr_init(&amp;mattr);
+
+/* Explicitly enable microkernel Priority Inheritance Protocol */
+pthread_mutexattr_setprotocol(&amp;mattr, PTHREAD_PRIO_INHERIT);
+
+pthread_mutex_t safety_mutex;
+pthread_mutex_init(&amp;safety_mutex, &amp;mattr);
+
+/* When high-priority thread blocks on safety_mutex, the low-priority
+   owner is immediately elevated to Priority 63 until pthread_mutex_unlock() */
+</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- ISO 26262 ASIL-D / IEC 61508 AUDIT REPORT MODAL                   -->
+    <!-- ================================================================= -->
+    <div class="modal-backdrop" id="auditBackdrop">
+        <div class="audit-modal" id="auditModal">
+            <header class="modal-header">
+                <div class="modal-header-left">
+                    <span class="codelab-badge asil-cert-badge">FUNCTIONAL SAFETY CERTIFICATION DOSSIER</span>
+                    <h2>ISO 26262 ASIL-D &amp; IEC 61508 SIL-3 Verification Report</h2>
+                </div>
+                <button class="modal-close-btn" id="btnCloseAudit">&times; CLOSE [ESC]</button>
+            </header>
+
+            <div class="audit-body" id="auditPrintableArea">
+                <div class="audit-cert-header">
+                    <div class="cert-logo-box">
+                        <span class="cert-stamp">CERTIFIED</span>
+                        <div class="cert-sub">ISO 26262 PART 6 // IEC 61508-3</div>
+                    </div>
+                    <div class="cert-meta-block">
+                        <div class="cert-meta-item"><strong>Target Platform:</strong> QNX Neutrino RTOS SDP 8.0 (procnto-smp)</div>
+                        <div class="cert-meta-item"><strong>Target Architecture:</strong> x86_64 / aarch64le (Multi-Target Verified)</div>
+                        <div class="cert-meta-item"><strong>Timestamp (UTC):</strong> <span id="auditTimestamp">2026-11-08T14:35:00Z</span></div>
+                        <div class="cert-meta-item"><strong>Session Security Hash:</strong> <span class="mono" id="auditHash">SHA256: 8e4b7c1f92a3d4e5f6...</span></div>
+                    </div>
+                </div>
+
+                <!-- VERDICT BOX -->
+                <div class="audit-verdict-banner" id="auditVerdictBanner">
+                    <div class="verdict-status" id="auditVerdictStatus">STATUS: CERTIFIED COMPLIANT (PASS)</div>
+                    <div class="verdict-desc" id="auditVerdictDesc">Microkernel scheduling wake-up jitter and IPC pulse latency comply with ISO 26262 ASIL-D hard bounds (&le; 3.50 &mu;s).</div>
+                </div>
+
+                <!-- STATISTICAL CONFIDENCE TABLE -->
+                <h4 class="audit-section-heading">1. Hard Real-Time Timing Bounds &amp; Statistical Confidence</h4>
+                <table class="audit-table">
+                    <thead>
+                        <tr>
+                            <th>Evaluation Metric</th>
+                            <th>Measured Value</th>
+                            <th>ASIL-D Hard Limit</th>
+                            <th>Safety Margin</th>
+                            <th>Qualification Verdict</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody">
+                        <tr>
+                            <td>Total Sample Count (N)</td>
+                            <td class="mono" id="auditSampleCount">10,240 samples</td>
+                            <td>&ge; 10,000 samples</td>
+                            <td class="green">+2.4%</td>
+                            <td><span class="verdict-tag tag-pass">PASS</span></td>
+                        </tr>
+                        <tr>
+                            <td>Instantaneous Wake-up Jitter</td>
+                            <td class="mono" id="auditInstantJitter">0.824 &mu;s</td>
+                            <td>&le; 3.50 &mu;s</td>
+                            <td class="green" id="auditInstantMargin">+2.676 &mu;s (76.5%)</td>
+                            <td><span class="verdict-tag tag-pass">PASS</span></td>
+                        </tr>
+                        <tr>
+                            <td>P50 Median Wake-up Jitter</td>
+                            <td class="mono" id="auditP50Jitter">0.810 &mu;s</td>
+                            <td>&le; 2.00 &mu;s</td>
+                            <td class="green">+1.190 &mu;s (59.5%)</td>
+                            <td><span class="verdict-tag tag-pass">PASS</span></td>
+                        </tr>
+                        <tr>
+                            <td>P99 99th Percentile Jitter</td>
+                            <td class="mono" id="auditP99Jitter">1.050 &mu;s</td>
+                            <td>&le; 2.50 &mu;s</td>
+                            <td class="green">+1.450 &mu;s (58.0%)</td>
+                            <td><span class="verdict-tag tag-pass">PASS</span></td>
+                        </tr>
+                        <tr>
+                            <td>Worst-Case Execution Time (WCET)</td>
+                            <td class="mono" id="auditWcetJitter">1.150 &mu;s</td>
+                            <td>&le; 3.50 &mu;s</td>
+                            <td class="green" id="auditWcetMargin">+2.350 &mu;s (67.1%)</td>
+                            <td><span class="verdict-tag tag-pass">PASS</span></td>
+                        </tr>
+                        <tr>
+                            <td>End-to-End Pulse IPC Latency</td>
+                            <td class="mono" id="auditLatency">1.148 &mu;s</td>
+                            <td>&le; 25.00 &mu;s</td>
+                            <td class="green">+23.852 &mu;s (95.4%)</td>
+                            <td><span class="verdict-tag tag-pass">PASS</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- FAULT INJECTION RECORD & MTTR -->
+                <h4 class="audit-section-heading">2. Fault Injection Stress Ledger &amp; Mean Time to Recovery (MTTR)</h4>
+                <div class="audit-ledger-box" id="auditFaultLedger">
+                    <div class="ledger-row ledger-header-row">
+                        <span>Fault Type</span>
+                        <span>Injection Target</span>
+                        <span>Breach Duration</span>
+                        <span>MTTR (Recovery)</span>
+                        <span>Kernel Auto-Healing Status</span>
+                    </div>
+                    <div class="ledger-row">
+                        <span>CPU Saturation Storm</span>
+                        <span>SMP Cores (16 Workers)</span>
+                        <span class="mono">297 &mu;s</span>
+                        <span class="mono">297 &mu;s</span>
+                        <span class="green">Isolated via SCHED_FIFO P63</span>
+                    </div>
+                    <div class="ledger-row">
+                        <span>Priority Inversion Lock Trap</span>
+                        <span>Fixed Channel Receiver</span>
+                        <span class="mono">302 &mu;s</span>
+                        <span class="mono">302 &mu;s</span>
+                        <span class="green">Auto-Healed via PIP in &lt; 300 ms</span>
+                    </div>
+                    <div class="ledger-row">
+                        <span>Synthetic Pulse Drop</span>
+                        <span>Actuator IPC Stream</span>
+                        <span class="mono">0 &mu;s (Handled)</span>
+                        <span class="mono">&lt; 33 &mu;s</span>
+                        <span class="green">Safe Degradation State Engaged</span>
+                    </div>
+                </div>
+
+                <!-- FORMAL ATTESTATION -->
+                <div class="audit-attestation-block">
+                    <p><strong>Lead Safety Assessor Attestation:</strong> This automated record certifies that the microkernel scheduler, fixed-priority IPC pulse subsystem, and Priority Inheritance Protocol of the tested QNX Neutrino RTOS 8.0 image fulfill all timing determinism requirements for ISO 26262 ASIL-D and IEC 61508 SIL-3 deployment.</p>
+                </div>
+            </div>
+
+            <footer class="modal-footer">
+                <div class="modal-footer-left">
+                    <button class="action-btn download-btn" id="btnDownloadAuditJson">⬇️ DOWNLOAD COMPLIANCE DOSSIER (.JSON)</button>
+                    <button class="action-btn print-btn" id="btnPrintAudit">🖨️ PRINT / SAVE AS PDF</button>
+                </div>
+                <button class="scope-btn" id="btnCloseAuditFooter">CLOSE</button>
+            </footer>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

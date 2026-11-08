@@ -1,0 +1,62 @@
+# ==============================================================================
+# QNX-ChaosPulse: Enterprise Git Ignore Matrix
+# ==============================================================================
+
+# Node & Package Management
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Target C Microkernel Build Artifacts & Binaries
+target/bin/
+build/
+bin/
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.d
+*.exe
+target_daemon_posix
+/chaospulse_daemon
+
+# Heavy Temporary Video & Voiceover Raw Renders
+# (Master 4K Video Hosted on YouTube: https://youtu.be/P9EqUDy4UHY)
+media/captures/
+media/voiceover/*.mp3
+media/voiceover/concat_list.txt
+media/output/raw*
+media/output/*.mp4
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Operating System & Editor Metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Tt]humbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.log
+
+# Explicitly Track Mission-Critical Documentation & Screenshot Captures
+!docs/screenshots/*.png
+!docs/QNX-ChaosPulse-Audit-Report.json

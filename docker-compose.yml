@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  cockpit:
+    build: .
+    container_name: qnx-chaospulse-cockpit
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - TELEMETRY_RATE_HZ=21.0
+      - TARGET_LINK=MOCK_FALLBACK
+    restart: unless-stopped

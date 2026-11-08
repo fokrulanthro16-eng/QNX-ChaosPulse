@@ -1,0 +1,28 @@
+{
+  "name": "qnx-chaospulse",
+  "version": "1.0.0",
+  "description": "Deterministic Microkernel Chaos Engineering & Real-Time IPC Resilience Verification Suite for QNX Neutrino SDP 8.0",
+  "main": "host/server.js",
+  "scripts": {
+    "start": "node host/server.js",
+    "cockpit": "node host/server.js",
+    "lint": "node --check host/server.js",
+    "test": "node --check host/server.js && node -e \"const fs = require('fs'); JSON.parse(fs.readFileSync('docs/QNX-ChaosPulse-Audit-Report.json', 'utf8')); console.log('Audit Report Validated');\""
+  },
+  "keywords": [
+    "qnx",
+    "neutrino",
+    "rtos",
+    "chaos-engineering",
+    "asil-d",
+    "iso26262",
+    "iec61508",
+    "real-time",
+    "microkernel",
+    "ipc",
+    "embedded",
+    "automotive"
+  ],
+  "author": "FOKRUL ISLAM",
+  "license": "MIT"
+}

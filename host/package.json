@@ -1,0 +1,26 @@
+{
+  "name": "qnx-chaospulse-cockpit",
+  "version": "1.0.0",
+  "description": "Zero-Dependency Real-Time Telemetry Cockpit for QNX Neutrino 8.0 Microkernel Chaos Engineering",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "mock": "node mock_engine.js",
+    "lint": "node --check server.js"
+  },
+  "keywords": [
+    "qnx",
+    "neutrino",
+    "rtos",
+    "chaos-engineering",
+    "real-time",
+    "asil-d",
+    "iso26262",
+    "iec61508",
+    "ipc",
+    "avionics",
+    "automotive"
+  ],
+  "author": "FOKRUL ISLAM",
+  "license": "MIT"
+}

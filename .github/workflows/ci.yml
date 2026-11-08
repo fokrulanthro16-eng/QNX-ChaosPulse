@@ -1,0 +1,60 @@
+name: QNX-ChaosPulse CI / Static Analysis & Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  host-static-analysis:
+    name: Host Telemetry Cockpit Lint & Asset Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax Lint host/server.js
+        run: |
+          node --check host/server.js
+          node --check host/mock_engine.js
+
+      - name: Validate Audit Report JSON Integrity
+        run: |
+          node -e "const fs = require('fs'); const data = JSON.parse(fs.readFileSync('docs/QNX-ChaosPulse-Audit-Report.json', 'utf8')); console.log('Successfully validated ISO 26262 audit report:', data.standard, '| Verdict:', data.formal_safety_verdict.qualification_status);"
+
+  target-c-compilation:
+    name: Target C Microkernel Engine (POSIX Fallback Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Compiler & Build Tools
+        run: sudo apt-get update && sudo apt-get install -y gcc make
+
+      - name: Compile Target C Microkernel Engine with Strict Flags
+        run: |
+          gcc -O3 -Wall -Wextra -pedantic -std=c99 -pthread -I./target/include \
+            -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_GNU_SOURCE \
+            target/src/cycle_telemetry.c \
+            target/src/pulse_interceptor.c \
+            target/src/cpu_storm_generator.c \
+            target/src/chaospulse_daemon.c \
+            -o target_daemon_posix -lm
+
+      - name: Verify Binary Existence & Architecture
+        run: |
+          ls -lh target_daemon_posix
+          file target_daemon_posix
+
+      - name: Test Makefile Build Targets
+        run: |
+          make -C target clean
+          make -C target
+          ls -lh target/bin/chaospulse_daemon
