@@ -40,7 +40,7 @@ jobs:
 
       - name: Compile Target C Microkernel Engine with Strict Flags
         run: |
-          gcc -O3 -Wall -Wextra -pedantic -std=c99 -pthread -I./target/include \
+          gcc -O3 -Wall -Wextra -pedantic -std=c11 -pthread -I./target/include \
             -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_GNU_SOURCE \
             target/src/cycle_telemetry.c \
             target/src/pulse_interceptor.c \

@@ -30,7 +30,7 @@ ifdef QNX_TARGET
 else
     # Host POSIX Fallback (Linux / macOS / Alpine Docker runner)
     CC ?= gcc
-    CFLAGS ?= -O3 -Wall -Wextra -pedantic -std=c99 -pthread -Iinclude \
+    CFLAGS ?= -O3 -Wall -Wextra -pedantic -std=c11 -pthread -Iinclude \
               -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_GNU_SOURCE
     LDFLAGS ?= -pthread -lm
     PLATFORM_DESC = "Host POSIX Real-Time Fallback Emulation (gcc)"

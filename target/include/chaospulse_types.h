@@ -11,6 +11,7 @@
 #ifndef CHAOSPULSE_TYPES_H
 #define CHAOSPULSE_TYPES_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
