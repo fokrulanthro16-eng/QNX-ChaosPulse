@@ -26,14 +26,14 @@ ifdef QNX_TARGET
 	CC = $(QNX_HOST)/usr/bin/qcc -Vgcc_ntox86_64
 	CFLAGS = -O3 -Wall -Wextra -D__QNXNTO__ -Iinclude
 	LDFLAGS = -M -lsocket
-	PLATFORM_DESC = "QNX Neutrino RTOS 8.0 SDP (qcc cross-compiler)"
+	PLATFORM_DESC = QNX Neutrino RTOS 8.0 SDP
 else
 	# Host POSIX Fallback (Linux / macOS / Alpine Docker runner)
 	CC ?= gcc
 	CFLAGS = -O3 -Wall -Wextra -pedantic -std=c11 -pthread -Iinclude \
 	         -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_GNU_SOURCE
 	LDFLAGS = -pthread -lm
-	PLATFORM_DESC = "Host POSIX Real-Time Fallback Emulation (gcc)"
+	PLATFORM_DESC = Host POSIX Real-Time Fallback Emulation
 endif
 
 all: $(TARGET_BIN)
